@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>The Bee is Silly!</title>
+		<script src="tmi.min.js"></script>
+		<script type="application/javascript">
+			var chatContainer;
+			var emoteDict = {};
+			const MAX_EMOTEBUFF = 100;
+			const MAX_MSGS = 50;
+			var imgHeight = '1';
+			function makeElement(type, options, parent_start, parent_end) {
+				const e = document.createElement(type);
+				if(options) {
+					for(const k in options) {
+						e[k] = options[k];
+					}
+				}
+				if(parent_end)
+					parent_end.append(e);
+				if(parent_start)
+					parent_start.insertBefore(e, parent_start.firstChild());
+				return e;
+			}
+			function markRead(target) {
+				for(const e of Array.from(chatContainer.children)) {
+					e.style.backgroundColor = '#808080';
+					for(const t of e.getElementsByTagName('text')) {
+						if(t === e.firstChild) continue;
+						t.style.color= '#404040';
+					}
+					if(e === target) break;
+				}
+			}
+			function txt2emote(msg,tags) {
+				//change format
+				emotes = [];
+				for(const id in tags.emotes) {
+					for(const loc of tags.emotes[id]) {
+						let [a, b] = loc.split('-');
+						b++;
+						const emoteTXT = msg.slice(a, b);
+						let e;
+						/*if(emoteTXT in emoteDict) {
+							e = emoteDict[emoteTXT];
+							e.date = Date.now();
+						} else { //*/
+							const emoteURL = `https://static-cdn.jtvnw.net/emoticons/v2/${id}/static/light/${imgHeight}.0`;
+							e = { emoteURL, a, b, emoteTXT };
+							e.emoteOBJ = makeElement('img', { src: emoteURL, alt: emoteTXT });
+
+							e.emoteOBJ.style.height = '1.2em';
+							e.emoteOBJ.style.verticalAlign = 'middle';
+							e.date = Date.now();
+							/*emoteDict[emoteTXT] = e;
+							if(Object.keys(emoteDict).length > MAX_EMOTEBUFF) {
+								const m = Object.keys(emoteDict)
+									.map(a=>emoteDict[a])
+									.reduce((a,b)=>a.date<b.date?a:b);
+								delete emoteDict[m.emoteTXT];
+								console.log('removed emote', m.emoteTXT, 'from buffer');
+							}
+						}//*/
+						emotes.push(e);
+					}
+				}
+				emotes.sort((a,b)=>a.a-b.a);
+				const result = [];
+				
+				//let a = 0;
+				let b = 0;
+				let e = emotes[0];
+				for(const e of emotes) {
+					if(b<e.a){
+						const a = makeElement('txt', {innerText: msg.slice(b,e.a)})
+						a.style.display = 'inline';
+						a.style.color = '#F0F0F0';
+						result.push(a);
+					}
+					result.push(e.emoteOBJ);
+					//a = e.a;
+					b = e.b;
+				}
+				if(b<msg.length){
+					const a = makeElement('txt', {innerText: msg.slice(b)})
+					a.style.display = 'inline';
+					a.style.color = '#F0F0F0';
+					result.push(a);
+				}
+
+				return result;//[ makeElement('text',{innerText: msg}) ]
+			}
+			var didLog = false;
+			window.onload = () => {
+				
+				console.log("silly chat loading");
+				chatContainer = document.getElementById("chat-container");
+				console.log("chatContainer", chatContainer);
+				let channel = window.location.hash.slice(1);
+				if(channel.indexOf('#') >= 0)
+					[imgHeight, channel] = channel.split('#');
+				var client = tmi.client({ channels: [channel] });
+				client.connect()
+					.then(()=>console.log("joined channels:", client.getChannels()))
+					.then(()=>console.log("silly chat loaded"));
+				client.on("chat",(target, tags, msg, self) => {
+					if(self) return; // never true but better safe than sorry
+					const chatBox = document.createElement('div');
+					//chatBox.style.backgroundColor = '#1a1d24';
+					if(didLog){
+						console.log("tags:",tags);
+					}
+					const username = document.createElement('text');
+					if(tags['display-name'].toLowerCase() == tags.username) {
+						username.innerText = tags['display-name'] + ': ';
+					} else {
+						username.innerText = `${tags['display-name']}(${tags.username}): `;
+					}
+					username.style.display = 'inline';
+					username.style.color = tags.color;
+					//username.style.color = 'black';
+					if(!tags.color || tags.color == '#000000')
+						username.style.textShadow = '0px 0px 2px #CCC';
+					//username.style.
+					chatBox.style.paddingTop = '5px';
+					chatBox.style.paddingBottom = '5px';
+					chatBox.style.marginLeft = '20px';
+					chatBox.style.borderTop = '2px solid #555';
+					chatBox.append(username);
+					
+					const message = document.createElement('div');
+					if(!tags.emotes){
+						const txt = document.createElement('text');
+						txt.innerText = msg;
+						txt.style.display = 'inline';
+						txt.style.color = '#F0F0F0';
+						message.append(txt);
+					} else {
+						for(const e of txt2emote(msg, tags)){
+							message.append(e);
+						}
+						//txt2emote(msg, tags).forEach(message.append);
+					}
+					chatBox.append(message);
+					//chatBox.onclick = (...a)=>console.log(a);
+					chatBox.onclick = () => markRead(chatBox);
+
+					chatContainer.append(chatBox);
+
+					const children = Array.from(chatContainer.children);
+					if(children.length > MAX_MSGS)
+						chatContainer.removeChild(chatContainer.firstChild);
+					//chatContainer.scrollTo(0, chatContainer.scrollHeight);
+					window.scrollTo(0, document.body.scrollHeight);
+				});
+			};
+		</script>
+	</head>
+	<body style="background-color: #1a1d24; /*font-weight: bold;*/ font-family: Arial;">
+		<li id="chat-container" style='overflow: hidden;'></li>
+	</body>
+</html>
