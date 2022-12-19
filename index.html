@@ -23,13 +23,16 @@
 					parent_start.insertBefore(e, parent_start.firstChild());
 				return e;
 			}
-			function markRead(target) {
-				for(const e of Array.from(chatContainer.children)) {
+			function markReadSingle(e) {
 					e.style.backgroundColor = '#808080';
 					for(const t of e.getElementsByTagName('text')) {
 						if(t === e.firstChild) continue;
 						t.style.color= '#404040';
 					}
+			}
+			function markRead(target) {
+				for(const e of Array.from(chatContainer.children)) {
+				  markReadSingle(e);
 					if(e === target) break;
 				}
 			}
