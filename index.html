@@ -161,7 +161,7 @@
         client.on("messagedeleted",(target, username, deletedMessage, tags) => {
           const e = document.getElementById(tags["target-msg-id"]);
           //e.remove();
-          //markReadSingle(e)
+          markReadSingle(e);
           e.style.textDecoration = 'line-through';
         });
       };
