@@ -110,6 +110,7 @@
 				client.on("chat",(target, tags, msg, self) => {
 					if(self) return; // never true but better safe than sorry
 					const chatBox = document.createElement('div');
+					chatBox.id = tags.id;
 					//chatBox.style.backgroundColor = '#1a1d24';
 					if(didLog){
 						console.log("tags:",tags);
@@ -156,6 +157,12 @@
 						chatContainer.removeChild(chatContainer.firstChild);
 					//chatContainer.scrollTo(0, chatContainer.scrollHeight);
 					window.scrollTo(0, document.body.scrollHeight);
+				});
+				client.on("messagedeleted",(target, username, deletedMessage, tags) => {
+		      const e = document.getElementById(tags["target-msg-id"]);
+		      //e.remove();
+		      //markReadSingle(e)
+		      e.style.textDecoration = 'line-through';
 				});
 			};
 		</script>
